@@ -17,7 +17,6 @@ load_dotenv()
 groq_client = Groq()
 
 def generate_section_summaries(chunks: list) -> SectionSummaries:
-
     sections_map = {}
     for chunk in chunks:
         if chunk.section_name not in sections_map:
@@ -26,15 +25,13 @@ def generate_section_summaries(chunks: list) -> SectionSummaries:
     
     final_summaries = {}
     
-    # 2. Loop through each section and summarize it individually
     for section_title, text_list in sections_map.items():
-        # Combine text for this section (limit to avoid token issues if a section is massive)
         section_text = " ".join(text_list)[:4000] 
         
         prompt = f"Summarize the following '{section_title}' section of a research paper in 2-3 concise sentences focusing on the core details:\n\n{section_text}"
         
         response = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant", # Active fast model
+            model="llama-3.1-8b-instant", # Updated to active production model
             messages=[{"role": "user", "content": prompt}]
         )
         
@@ -44,17 +41,16 @@ def generate_section_summaries(chunks: list) -> SectionSummaries:
 
 
 def extract_key_contributions(chunks: list) -> KeyContributions:
-    # 1. Isolate text from Abstract or Introduction where contributions live
     intro_text = " ".join([
         chunk.text for chunk in chunks 
         if chunk.section_name in ["Abstract", "Introduction"]
-    ])[:6000] # Safeguard limit
+    ])[:6000]
     
     prompt = f"""
     Analyze the introduction/abstract text of this research paper. 
     Extract the main contributions of this work as a list of short, direct bullet points (e.g., 'Proposes a new model architecture', 'Improves inference speed').
     
-    Respond strictly in this JSON format:
+    Respond strictly in valid JSON format matching this structure:
     {{
         "contributions": ["bullet 1", "bullet 2", "bullet 3"]
     }}
@@ -64,7 +60,7 @@ def extract_key_contributions(chunks: list) -> KeyContributions:
     """
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192", # Higher reasoning model for extracting precise outcomes
+        model="llama-3.3-70b-versatile", # Updated model name
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
@@ -74,13 +70,12 @@ def extract_key_contributions(chunks: list) -> KeyContributions:
 
 
 def generate_paper_summary(chunks: list) -> CompletePaperSummary:
-
     full_text = " ".join([chunk.text for chunk in chunks[:15]]) 
     
     prompt = f"""
     You are an expert research assistant. Analyze the following research paper text and generate a structured summary.
     
-    Provide the response in JSON format matching this structure:
+    Provide the response strictly in valid JSON format matching this structure:
     {{
         "simple_english": {{
             "problem_solved": "What problem does this paper solve?",
@@ -99,7 +94,7 @@ def generate_paper_summary(chunks: list) -> CompletePaperSummary:
     {full_text}
     """
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile", # Or "llama-3.1-70b-versatile"
+        model="llama-3.3-70b-versatile", # Updated model name
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )

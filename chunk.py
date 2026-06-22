@@ -23,17 +23,17 @@ TARGET_SECTIONS = [
 ]
 
 def extract_metadata_from_pdf(file_path: str) -> PaperMetadata:
-
     doc = fitz.open(file_path)
     first_pages_text = ""
     for page in doc[:2]: 
         first_pages_text += page.get_text()
     doc.close()
 
-    prompt = f"Extract the title, authors, publication year, abstract, and venue/journal from this academic text:\n\n{first_pages_text}"
+    # Added the word 'JSON' to satisfy Groq API structural response constraints
+    prompt = f"Extract the title, authors, publication year, abstract, and venue/journal from this academic text. Respond strictly in valid JSON format:\n\n{first_pages_text}"
     
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.3-70b-versatile",  # Migrated to standard production model
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"} 
     )

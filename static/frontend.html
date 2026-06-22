@@ -1076,7 +1076,11 @@ async function loadOverview() {
     doneStep('ps-chunk');
 
     setProgress(60, 'ps-extract');
-    const summary = await apiPost(`/papers/summarize?file_path=${enc(currentFilePath)}`);
+    // Fetch summary data and stats payload concurrently
+    const [summary, stats] = await Promise.all([
+      apiPost(`/papers/summarize?file_path=${enc(currentFilePath)}`),
+      apiPost(`/papers/stats?file_path=${enc(currentFilePath)}`).catch(() => null)
+    ]);
     doneStep('ps-extract');
 
     setProgress(80, 'ps-summarize');
@@ -1091,9 +1095,21 @@ async function loadOverview() {
     doneStep('ps-verify');
     setProgress(100);
 
-    // Quick stats
-    document.getElementById('stat-year').textContent = '—';
-    document.getElementById('chunk-count').textContent = '✓ LOADED';
+    // Populate the stats dashboard dynamically using the backend data payload
+    if (stats) {
+      document.getElementById('stat-pages').textContent = stats.pages;
+      document.getElementById('stat-chunks').textContent = stats.chunks;
+      document.getElementById('stat-sections').textContent = stats.sections;
+      document.getElementById('stat-year').textContent = stats.year;
+      document.getElementById('chunk-count').textContent = stats.chunks + ' CHUNKS';
+    } else {
+      document.getElementById('stat-pages').textContent = '—';
+      document.getElementById('stat-chunks').textContent = '—';
+      document.getElementById('stat-sections').textContent = '—';
+      document.getElementById('stat-year').textContent = '—';
+      document.getElementById('chunk-count').textContent = '✓ LOADED';
+    }
+    
     loadedTabs.add('overview');
 
   } catch(err) {
@@ -1101,7 +1117,6 @@ async function loadOverview() {
     showToast('Overview failed: ' + err.message);
   }
 }
-
 // ═══════════════════════════════════════════════════
 //  MODULE 02 — CONTRIBUTIONS + PROBLEM STATEMENT
 // ═══════════════════════════════════════════════════

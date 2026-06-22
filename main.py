@@ -91,7 +91,29 @@ async def upload_research_paper(file: UploadFile = File(...)):
         "message": "Upload successful"
     }
 
-
+@app.post("/papers/stats")
+async def get_paper_stats(file_path: str):
+    try:
+        chunks = process_pdf_into_chunks(file_path)
+        
+        # Safely try to fetch metadata without breaking the summary pipeline if it fails
+        try:
+            metadata = extract_metadata_from_pdf(file_path)
+            year = metadata.publication_year or "—"
+        except Exception:
+            year = "—"
+            
+        pages = max([c.page_number for c in chunks]) if chunks else "—"
+        sections = len(set([c.section_name for c in chunks])) if chunks else "—"
+        
+        return {
+            "pages": pages,
+            "chunks": len(chunks),
+            "sections": sections,
+            "year": year
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to compile paper metrics: {str(e)}")
 
 @app.post("/papers/summarize", response_model=CompletePaperSummary)
 async def summarize_paper(file_path: str):
