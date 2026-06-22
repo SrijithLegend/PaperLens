@@ -28,7 +28,7 @@ def generate_verified_summary_with_coverage(chunks: list) -> VerifiedSummary:
     """
     
     response1 = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": pass1_prompt}],
         response_format={"type": "json_object"}
     )
@@ -50,7 +50,7 @@ def generate_verified_summary_with_coverage(chunks: list) -> VerifiedSummary:
     """
 
     final_response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": coverage_prompt}],
         response_format={"type": "json_object"}
     )

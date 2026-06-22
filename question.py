@@ -40,7 +40,7 @@ def get_chat_response(user_question: str, chunks: list) -> ChatResponse:
     
     # 5. Get structured answer from LLM
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192", 
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )

@@ -33,7 +33,7 @@ def extract_metadata_from_pdf(file_path: str) -> PaperMetadata:
     prompt = f"Extract the title, authors, publication year, abstract, and venue/journal from this academic text:\n\n{first_pages_text}"
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",  
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"} 
     )

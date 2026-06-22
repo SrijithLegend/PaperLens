@@ -27,7 +27,7 @@ def detect_paper_novelty(chunks: list) -> NoveltyAssessment:
     """
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192", # Requires a heavy reasoning model to look past academic hype
+        model="llama-3.3-70b-versatile", # Requires a heavy reasoning model to look past academic hype
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
@@ -56,7 +56,7 @@ def extract_baseline_comparisons(chunks: list) -> BaselineComparison:
     """
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )

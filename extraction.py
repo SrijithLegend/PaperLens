@@ -10,9 +10,9 @@ import json
 import os
 from dotenv import load_dotenv
 import re
-from classes import KeyContributions, LimitationsExtractor, MethodologyBreakdown, ProblemStatement, ProblemStatement, ResultsSummary, SectionSummaries , PaperMetadata, DocumentChunk, SimpleSummary, TechnicalSummary, CompletePaperSummary
 from chunk import process_pdf_into_chunks, split_text_into_chunks , extract_metadata_from_pdf
 from summary import generate_section_summaries, extract_key_contributions , generate_paper_summary
+from classes import KeyContributions, LimitationsExtractor, MethodologyBreakdown, ProblemStatement, ResultsSummary, SectionSummaries , PaperMetadata, DocumentChunk, SimpleSummary, TechnicalSummary, CompletePaperSummary
 
 load_dotenv()
 groq_client = Groq()
@@ -22,7 +22,7 @@ def extract_problem_statement(chunks: list) -> ProblemStatement:
     prompt = f"Analyze this text and extract: 1. The research gap, 2. Why previous methods failed, 3. The exact target problem.\n\nText:\n{context}"
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
@@ -34,7 +34,7 @@ def extract_methodology(chunks: list) -> MethodologyBreakdown:
     prompt = f"Analyze the methodology text. Provide the main pipeline, individual components, architecture notes, a step-by-step workflow, and a simple explanation of any algorithms/equations.\n\nText:\n{context}"
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
@@ -46,7 +46,7 @@ def extract_results(chunks: list) -> ResultsSummary:
     prompt = f"Extract results data: Key metrics/numbers, benchmark datasets used, how it compared to baselines, and where it improved vs where it did not.\n\nText:\n{context}"
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
@@ -58,7 +58,7 @@ def extract_limitations(chunks: list) -> LimitationsExtractor:
     prompt = f"Extract all flaws/constraints. Include explicit author admissions, method constraints, edge-case failure modes, and dataset/compute cost limits.\n\nText:\n{context}"
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )

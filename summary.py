@@ -34,7 +34,7 @@ def generate_section_summaries(chunks: list) -> SectionSummaries:
         prompt = f"Summarize the following '{section_title}' section of a research paper in 2-3 concise sentences focusing on the core details:\n\n{section_text}"
         
         response = groq_client.chat.completions.create(
-            model="llama3-8b-8192", # Fast, smaller model works perfectly for short sections
+            model="llama-3.1-8b-instant", # Active fast model
             messages=[{"role": "user", "content": prompt}]
         )
         
@@ -99,7 +99,7 @@ def generate_paper_summary(chunks: list) -> CompletePaperSummary:
     {full_text}
     """
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192", 
+        model="llama-3.3-70b-versatile", # Or "llama-3.1-70b-versatile"
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )

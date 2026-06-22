@@ -37,7 +37,7 @@ def evaluate_and_compare_papers(paper1_chunks: list, paper2_chunks: list) -> Cro
     """
     
     response = groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
@@ -47,7 +47,7 @@ def evaluate_and_compare_papers(paper1_chunks: list, paper2_chunks: list) -> Cro
 from fastapi.responses import StreamingResponse
 import io
 
-def generate_markdown_export(data: CrossPaperEvaluation) -> io.BytesIO:
+def generate_markdown_export(data: dict) -> io.BytesIO:
     md_content = f"# Paper Analysis Summary: {data.get('title', 'Research Paper')}\n\n"
     md_content += f"## Problem Statement\n{data.get('problem', 'N/A')}\n\n"
     md_content += f"## Core Methodology\n{data.get('method', 'N/A')}\n\n"
