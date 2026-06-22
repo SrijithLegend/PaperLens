@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLens AI — Research Paper Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:   #0A0A0A;
+    --white:   #F5F0E8;
+    --off:     #E2DBD0;
+    --red:     #FF2D00;
+    --dark:    #1A1A1A;
+    --mid:     #888;
+    --rule:    3px solid #0A0A0A;
+    --rule-sm: 1.5px solid #0A0A0A;
+    --mono:    'JetBrains Mono', monospace;
+    --sans:    'Space Grotesk', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--white);
+    color: var(--black);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    border-bottom: var(--rule);
+    display: flex;
+    align-items: stretch;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    background: var(--white);
+    z-index: 100;
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px;
+    border-right: var(--rule);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+  }
+  .brand-dot { width: 10px; height: 10px; background: var(--red); flex-shrink: 0; }
+  .topbar-nav { display: flex; align-items: stretch; flex: 1; }
+  .topbar-nav a {
+    display: flex; align-items: center; padding: 0 18px;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    text-decoration: none; color: var(--black);
+    border-right: var(--rule-sm); transition: background 0.1s; cursor: pointer;
+  }
+  .topbar-nav a:hover { background: var(--black); color: var(--white); }
+  .topbar-nav a.active { background: var(--black); color: var(--white); }
+  .topbar-right {
+    margin-left: auto; display: flex; align-items: center;
+    padding: 0 20px; border-left: var(--rule-sm);
+    font-family: var(--mono); font-size: 11px; color: var(--mid); gap: 8px;
+    white-space: nowrap;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #00C853; }
+  .status-dot.offline { background: var(--red); }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 56px - 42px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar { border-right: var(--rule); display: flex; flex-direction: column; }
+  .sidebar-section { border-bottom: var(--rule-sm); padding: 20px; }
+  .sidebar-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--mid); margin-bottom: 14px;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2.5px dashed var(--black); padding: 24px 16px;
+    text-align: center; cursor: pointer; transition: background 0.1s; position: relative;
+  }
+  .upload-zone:hover { background: var(--off); }
+  .upload-zone.dragover { background: var(--off); border-style: solid; }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+  .upload-zone p { font-family: var(--mono); font-size: 11px; color: var(--mid); line-height: 1.6; }
+  .upload-zone strong { font-family: var(--sans); font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--black); }
+
+  /* Paper list */
+  .paper-item {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 12px 4px; border-bottom: var(--rule-sm);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .paper-item:last-child { border-bottom: none; }
+  .paper-item:hover { background: var(--off); }
+  .paper-item.active { background: var(--black); color: var(--white); }
+  .paper-item.active .paper-meta { color: #aaa; }
+  .paper-title { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+  .paper-meta { font-family: var(--mono); font-size: 10px; color: var(--mid); }
+  .paper-badge {
+    display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px;
+    border: 1.5px solid; margin-top: 4px; width: fit-content;
+  }
+  .badge-analyzed { border-color: #00C853; color: #00C853; }
+  .badge-processing { border-color: var(--red); color: var(--red); }
+  .badge-queued { border-color: var(--mid); color: var(--mid); }
+
+  /* Sidebar analysis list */
+  .analysis-list { list-style: none; }
+  .analysis-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: var(--rule-sm);
+    cursor: pointer; font-size: 12.5px; font-weight: 500; transition: padding-left 0.12s;
+  }
+  .analysis-list li:last-child { border-bottom: none; }
+  .analysis-list li:hover { padding-left: 6px; }
+  .analysis-list li.active { font-weight: 700; }
+  .al-num { font-family: var(--mono); font-size: 10px; color: var(--mid); width: 18px; flex-shrink: 0; }
+  .al-dot { width: 6px; height: 6px; background: var(--red); flex-shrink: 0; display: none; }
+  .analysis-list li.active .al-dot { display: block; }
+  .analysis-list li.active .al-num { display: none; }
+
+  /* ── MAIN CONTENT ── */
+  .main { display: flex; flex-direction: column; }
+
+  .content-header {
+    border-bottom: var(--rule); padding: 16px 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    min-height: 64px;
+  }
+  .content-header-left { display: flex; flex-direction: column; gap: 3px; }
+  .content-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mid); }
+  .content-title { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.2; }
+  .content-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* Buttons */
+  .btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; padding: 9px 16px;
+    border: 2px solid; cursor: pointer; transition: all 0.1s; white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--black); color: var(--white); border-color: var(--black); }
+  .btn-primary:hover:not(:disabled) { background: var(--red); border-color: var(--red); }
+  .btn-ghost { background: transparent; color: var(--black); border-color: var(--black); }
+  .btn-ghost:hover:not(:disabled) { background: var(--black); color: var(--white); }
+  .btn-red { background: var(--red); color: var(--white); border-color: var(--red); }
+  .btn-red:hover:not(:disabled) { background: var(--black); border-color: var(--black); }
+
+  /* ── CONTENT BODY ── */
+  .content-body { padding: 28px; flex: 1; overflow-y: auto; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; }
+
+  /* Card */
+  .card { border: var(--rule-sm); margin-top: -1.5px; margin-left: -1.5px; }
+  .card-header {
+    border-bottom: var(--rule-sm); padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between; background: var(--off);
+  }
+  .card-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .card-stamp { font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; color: var(--mid); }
+  .card-body { padding: 16px; }
+  .card-body p { font-size: 13.5px; line-height: 1.65; color: var(--dark); }
+
+  /* Section separator */
+  .section-sep { display: flex; align-items: center; gap: 14px; margin: 32px 0 20px; }
+  .section-sep-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; }
+  .section-sep-line { flex: 1; height: 2px; background: var(--black); }
+  .section-sep-num { font-family: var(--mono); font-size: 10px; color: var(--mid); }
+
+  /* Summary block */
+  .summary-block { border: var(--rule-sm); }
+  .summary-block + .summary-block { border-top: none; }
+  .summary-row { display: grid; grid-template-columns: 180px 1fr; border-bottom: var(--rule-sm); }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-key {
+    padding: 14px 16px; border-right: var(--rule-sm); background: var(--off);
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: flex-start;
+  }
+  .summary-val { padding: 14px 16px; font-size: 13.5px; line-height: 1.6; min-height: 50px; }
+
+  /* Contributions */
+  .contrib-list { list-style: none; }
+  .contrib-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 0; border-bottom: var(--rule-sm); font-size: 13.5px; line-height: 1.55;
+  }
+  .contrib-list li:last-child { border-bottom: none; }
+  .contrib-num { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--red); width: 24px; flex-shrink: 0; padding-top: 1px; }
+
+  /* Data table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .data-table th {
+    font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 10px 14px; border: var(--rule-sm);
+    background: var(--black); color: var(--white); text-align: left;
+  }
+  .data-table td { padding: 10px 14px; border: var(--rule-sm); vertical-align: top; line-height: 1.45; }
+  .data-table tr:nth-child(even) td { background: var(--off); }
+  .improvement-pos { color: #00813A; font-weight: 700; font-family: var(--mono); }
+  .improvement-neg { color: var(--red); font-weight: 700; font-family: var(--mono); }
+
+  /* Chat */
+  .chat-shell { border: var(--rule-sm); display: flex; flex-direction: column; height: 100%; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .chat-msg { display: flex; flex-direction: column; gap: 5px; }
+  .chat-msg-label { font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mid); }
+  .chat-msg-bubble { padding: 12px 14px; font-size: 13.5px; line-height: 1.6; max-width: 90%; }
+  .msg-user .chat-msg-bubble { background: var(--black); color: var(--white); align-self: flex-end; }
+  .msg-user .chat-msg-label { align-self: flex-end; }
+  .msg-ai .chat-msg-bubble { background: var(--off); border-left: 3px solid var(--red); }
+  .chat-citation {
+    font-family: var(--mono); font-size: 10px; color: var(--mid);
+    padding: 6px 10px; background: var(--white); border: var(--rule-sm);
+    border-left: 3px solid var(--mid); margin-top: 6px; max-width: 90%;
+  }
+  .chat-input-bar { border-top: var(--rule); display: flex; }
+  .chat-input-bar input {
+    flex: 1; padding: 14px 16px; font-family: var(--sans); font-size: 13.5px;
+    border: none; background: transparent; outline: none; color: var(--black);
+  }
+  .chat-input-bar input::placeholder { color: var(--mid); }
+  .chat-input-bar input:disabled { opacity: 0.5; }
+  .chat-input-bar button {
+    border: none; border-left: var(--rule); background: var(--black); color: var(--white);
+    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 0 20px; cursor: pointer; transition: background 0.1s;
+  }
+  .chat-input-bar button:hover { background: var(--red); }
+  .chat-input-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .quick-questions {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px;
+    border-top: var(--rule-sm); background: var(--off);
+  }
+  .qq-btn {
+    font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 5px 10px; border: 1.5px solid var(--black); background: transparent;
+    cursor: pointer; transition: all 0.1s;
+  }
+  .qq-btn:hover { background: var(--black); color: var(--white); }
+
+  /* Stat bar */
+  .stat-bar { display: grid; grid-template-columns: repeat(4, 1fr); border: var(--rule-sm); margin-bottom: 24px; }
+  .stat-item { padding: 16px 18px; border-right: var(--rule-sm); }
+  .stat-item:last-child { border-right: none; }
+  .stat-val { font-size: 28px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+  .stat-val span { color: var(--red); }
+  .stat-key { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); margin-top: 6px; }
+
+  /* Novelty */
+  .novelty-verdict { border: 3px solid var(--black); padding: 20px; margin-bottom: 20px; position: relative; }
+  .novelty-stamp {
+    position: absolute; top: -1px; right: 16px;
+    font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; background: var(--red); color: var(--white); padding: 3px 8px;
+  }
+  .novelty-verdict h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.3px; }
+  .novelty-verdict p { font-size: 13.5px; line-height: 1.65; color: var(--dark); }
+
+  /* Limit tags */
+  .limit-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .limit-tag { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 4px 10px; background: var(--off); border: 1.5px solid var(--black); }
+  .limit-tag.hard { border-color: var(--red); color: var(--red); }
+
+  /* Tabs */
+  .page-tabs { display: none; flex-direction: column; flex: 1; }
+  .page-tabs.active { display: flex; }
+
+  /* Progress */
+  .progress-wrap { border: var(--rule-sm); padding: 20px; margin-bottom: 24px; }
+  .progress-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .progress-bar-outer { width: 100%; height: 8px; background: var(--off); border: 1.5px solid var(--black); }
+  .progress-bar-inner { height: 100%; background: var(--black); transition: width 0.4s; }
+  .progress-steps { display: flex; margin-top: 12px; gap: 0; overflow: hidden; }
+  .ps-item {
+    flex: 1; font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em;
+    text-transform: uppercase; padding: 6px 10px; border: 1.5px solid var(--black);
+    margin-right: -1.5px; color: var(--mid);
+  }
+  .ps-item.done { background: var(--black); color: var(--white); }
+  .ps-item.running { background: var(--off); color: var(--black); font-weight: 700; }
+
+  /* Footer */
+  .footer-rule {
+    border-top: var(--rule); padding: 12px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--mid);
+  }
+
+  /* Loading spinner overlay */
+  .loading-overlay {
+    display: none; position: absolute; inset: 0;
+    background: rgba(245,240,232,0.85); z-index: 50;
+    align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+  }
+  .loading-overlay.active { display: flex; }
+  .loading-text { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .loading-bar-wrap { width: 200px; height: 4px; background: var(--off); border: 1.5px solid var(--black); }
+  .loading-bar-fill { height: 100%; background: var(--red); animation: loadpulse 1.2s ease-in-out infinite; }
+  @keyframes loadpulse { 0%,100% { width: 20%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } }
+
+  /* Error toast */
+  .toast {
+    position: fixed; bottom: 60px; right: 20px; z-index: 200;
+    background: var(--black); color: var(--white);
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    padding: 12px 18px; border-left: 4px solid var(--red);
+    opacity: 0; transform: translateY(10px); transition: all 0.25s;
+    max-width: 340px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Empty state */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 40px; text-align: center; flex: 1; gap: 12px;
+  }
+  .empty-icon { font-size: 36px; }
+  .empty-title { font-size: 16px; font-weight: 700; }
+  .empty-sub { font-family: var(--mono); font-size: 11px; color: var(--mid); }
+
+  /* Skeleton loader */
+  .skeleton { background: var(--off); border-radius: 0; animation: skelpulse 1.4s ease-in-out infinite; }
+  @keyframes skelpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .skel-line { height: 14px; margin-bottom: 10px; }
+  .skel-line.short { width: 40%; }
+  .skel-line.med { width: 70%; }
+  .skel-line.full { width: 100%; }
+
+  /* Typing indicator */
+  .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dots span {
+    width: 6px; height: 6px; background: var(--mid);
+    animation: typedot 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typedot { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .stat-bar { grid-template-columns: 1fr 1fr; }
+    .stat-item:nth-child(2) { border-right: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-dot"></div>
+    PAPERLENS AI
+  </div>
+  <nav class="topbar-nav">
+    <a class="active" onclick="showView('analysis', this)">Analysis</a>
+    <a onclick="showView('compare', this)">Compare</a>
+    <a onclick="showView('library', this)">Library</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="status-dot" id="api-status-dot"></div>
+    <span id="api-status-text">CHECKING...</span>
+    &nbsp;·&nbsp;
+    <span id="chunk-count">0 CHUNKS</span>
+  </div>
+</header>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Upload Paper</div>
+      <div class="upload-zone" id="sidebar-upload"
+           ondragover="event.preventDefault(); this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)">
+        <input type="file" accept=".pdf" onchange="handleFileSelect(event)">
+        <span class="upload-icon">📄</span>
+        <strong>Drop PDF here</strong>
+        <p>or click to browse<br>Max 50MB per file</p>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Recent Papers</div>
+      <div id="paper-list">
+        <div class="empty-sub" style="padding:12px 0;font-size:10px">No papers uploaded yet.</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="flex:1">
+      <div class="sidebar-label">Analysis Modules</div>
+      <ul class="analysis-list">
+        <li class="active" onclick="switchTab('overview')"><span class="al-num">01</span><div class="al-dot"></div>Overview & Summary</li>
+        <li onclick="switchTab('contributions')"><span class="al-num">02</span><div class="al-dot"></div>Key Contributions</li>
+        <li onclick="switchTab('methodology')"><span class="al-num">03</span><div class="al-dot"></div>Methodology</li>
+        <li onclick="switchTab('results')"><span class="al-num">04</span><div class="al-dot"></div>Results & Baselines</li>
+        <li onclick="switchTab('limitations')"><span class="al-num">05</span><div class="al-dot"></div>Limitations</li>
+        <li onclick="switchTab('novelty')"><span class="al-num">06</span><div class="al-dot"></div>Novelty Assessment</li>
+        <li onclick="switchTab('chat')"><span class="al-num">07</span><div class="al-dot"></div>Paper Q&A</li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" style="position:relative">
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="loading-text" id="loading-text">Analyzing paper...</div>
+      <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+    </div>
+
+    <!-- ── NO PAPER STATE ── -->
+    <div id="tab-nopaper" class="page-tabs active">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">PAPERLENS AI / READY</div>
+          <div class="content-title">Upload a PDF to begin</div>
+        </div>
+      </div>
+      <div class="content-body" style="display:flex;align-items:center;justify-content:center;flex:1">
+        <div style="text-align:center;max-width:480px">
+          <div style="font-size:52px;margin-bottom:20px">📄</div>
+          <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin-bottom:12px">Drop a research paper.</h2>
+          <p style="color:var(--mid);font-size:14px;line-height:1.7;margin-bottom:28px">Upload any academic PDF and PaperLens will extract structured insights — summaries, methodology, results, limitations, novelty assessment, and a grounded Q&A interface.</p>
+          <div style="display:flex;gap:0;border:var(--rule-sm)">
+            <div style="flex:1;padding:14px 10px;text-align:center;border-right:var(--rule-sm)">
+              <div style="font-size:20px;margin-bottom:6px">🔬</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--mid)">Deep Extraction</div>
+            </div>
+            <div style="flex:1;padding:14px 10px;text-align:center;border-right:var(--rule-sm)">
+              <div style="font-size:20px;margin-bottom:6px">📊</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--mid)">Baseline Tables</div>
+            </div>
+            <div style="flex:1;padding:14px 10px;text-align:center">
+              <div style="font-size:20px;margin-bottom:6px">💬</div>
+              <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--mid)">Grounded Q&A</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OVERVIEW TAB ── -->
+    <div id="tab-overview" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 01 / OVERVIEW</div>
+          <div class="content-title" id="overview-title">—</div>
+        </div>
+        <div class="content-actions">
+          <button class="btn btn-ghost" onclick="reAnalyze()">Re-Analyze</button>
+          <button class="btn btn-primary" onclick="exportMarkdown()">Export ↓</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="stat-bar">
+          <div class="stat-item"><div class="stat-val" id="stat-pages">—</div><div class="stat-key">Pages</div></div>
+          <div class="stat-item"><div class="stat-val" id="stat-chunks">—</div><div class="stat-key">Chunks</div></div>
+          <div class="stat-item"><div class="stat-val" id="stat-sections">—</div><div class="stat-key">Sections</div></div>
+          <div class="stat-item"><div class="stat-val" id="stat-year">—</div><div class="stat-key">Year</div></div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Analysis Pipeline</span><span id="progress-pct">0%</span></div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar" style="width:0%"></div></div>
+          <div class="progress-steps">
+            <div class="ps-item" id="ps-parse">Parse</div>
+            <div class="ps-item" id="ps-chunk">Chunk</div>
+            <div class="ps-item" id="ps-extract">Extract</div>
+            <div class="ps-item" id="ps-summarize">Summarize</div>
+            <div class="ps-item" id="ps-verify">Verify</div>
+          </div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Simple Summary</div><div class="section-sep-line"></div><div class="section-sep-num">A</div></div>
+        <div class="summary-block">
+          <div class="summary-row"><div class="summary-key">Problem Solved</div><div class="summary-val" data-key="problem_solved"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+          <div class="summary-row"><div class="summary-key">Why It Matters</div><div class="summary-val" data-key="why_it_matters"><div class="skeleton skel-line full"></div><div class="skeleton skel-line short"></div></div></div>
+          <div class="summary-row"><div class="summary-key">What They Built</div><div class="summary-val" data-key="what_they_built"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Technical Detail</div><div class="section-sep-line"></div><div class="section-sep-num">B</div></div>
+        <div class="summary-block">
+          <div class="summary-row"><div class="summary-key">How It Works</div><div class="summary-val" data-key="how_it_works"><div class="skeleton skel-line full"></div><div class="skeleton skel-line full"></div><div class="skeleton skel-line short"></div></div></div>
+          <div class="summary-row"><div class="summary-key">Proposed System</div><div class="summary-val" data-key="proposed_system"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+          <div class="summary-row"><div class="summary-key">Experiments Run</div><div class="summary-val" data-key="experiments_run"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+          <div class="summary-row"><div class="summary-key">Results Obtained</div><div class="summary-val" data-key="results_obtained"><div class="skeleton skel-line full"></div><div class="skeleton skel-line short"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTRIBUTIONS TAB ── -->
+    <div id="tab-contributions" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 02 / CONTRIBUTIONS</div>
+          <div class="content-title">Key Contributions</div>
+        </div>
+        <div class="content-actions">
+          <button class="btn btn-ghost" onclick="copyContributions()">Copy All</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="card" style="border-width:2px;margin-bottom:24px">
+          <div class="card-header">
+            <div class="card-label">Extracted Contributions</div>
+            <div class="card-stamp" id="contrib-stamp">llama3-70b · loading...</div>
+          </div>
+          <div class="card-body">
+            <ul class="contrib-list" id="contrib-list">
+              <li><div class="skeleton skel-line full"></div></li>
+              <li><div class="skeleton skel-line med"></div></li>
+              <li><div class="skeleton skel-line full"></div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Problem Statement</div><div class="section-sep-line"></div></div>
+        <div class="summary-block">
+          <div class="summary-row"><div class="summary-key">Research Gap</div><div class="summary-val" data-key="research_gap"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+          <div class="summary-row"><div class="summary-key">Prior Failures</div><div class="summary-val" data-key="previous_method_failures"><div class="skeleton skel-line full"></div><div class="skeleton skel-line short"></div></div></div>
+          <div class="summary-row"><div class="summary-key">Target Problem</div><div class="summary-val" data-key="exact_target_problem"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── METHODOLOGY TAB ── -->
+    <div id="tab-methodology" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 03 / METHODOLOGY</div>
+          <div class="content-title">Architecture Breakdown</div>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="grid-2" style="border:var(--rule-sm);margin-bottom:24px">
+          <div class="card" style="border:none;border-right:var(--rule-sm)">
+            <div class="card-header"><div class="card-label">Main Pipeline</div></div>
+            <div class="card-body"><p data-key="main_pipeline"><div class="skeleton skel-line full"></div><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p></div>
+          </div>
+          <div class="card" style="border:none">
+            <div class="card-header"><div class="card-label">Architecture Details</div></div>
+            <div class="card-body"><p data-key="architecture_details"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p></div>
+          </div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Step-by-Step Workflow</div><div class="section-sep-line"></div></div>
+        <div class="summary-block" id="workflow-steps">
+          <div class="summary-row"><div class="summary-key">Loading...</div><div class="summary-val"><div class="skeleton skel-line full"></div></div></div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Module Inventory</div><div class="section-sep-line"></div></div>
+        <div class="grid-3" id="module-inventory">
+          <div class="card"><div class="card-header"><div class="card-label">Loading...</div></div><div class="card-body"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></div></div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Simplified Algorithm</div><div class="section-sep-line"></div></div>
+        <div class="card">
+          <div class="card-header"><div class="card-label">Plain-English Algorithm</div></div>
+          <div class="card-body"><p data-key="simplified_algorithms"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RESULTS TAB ── -->
+    <div id="tab-results" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 04 / RESULTS</div>
+          <div class="content-title">Baseline Comparison Table</div>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="card" style="border-width:2px;margin-bottom:24px">
+          <div class="card-header">
+            <div class="card-label">Benchmark Results</div>
+            <div class="card-stamp">llama3-70b · extracted</div>
+          </div>
+          <div class="card-body" style="padding:0;overflow-x:auto">
+            <table class="data-table" id="baseline-table">
+              <thead><tr>
+                <th>Baseline Model</th><th>Metric</th><th>Baseline</th><th>Proposed</th><th>Δ</th>
+              </tr></thead>
+              <tbody id="baseline-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--mid)">Upload a paper to extract baseline comparisons</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Results Summary</div><div class="section-sep-line"></div></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-label">Datasets Used</div></div>
+            <div class="card-body"><ul class="contrib-list" id="datasets-list"><li><div class="skeleton skel-line full"></div></li></ul></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-label">Significance Verdict</div></div>
+            <div class="card-body"><p id="significance-summary"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p></div>
+          </div>
+        </div>
+
+        <div class="section-sep"><div class="section-sep-label">Key Performance Numbers</div><div class="section-sep-line"></div></div>
+        <div class="card">
+          <div class="card-header"><div class="card-label">Top Metrics</div></div>
+          <div class="card-body"><ul class="contrib-list" id="perf-numbers"><li><div class="skeleton skel-line full"></div></li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LIMITATIONS TAB ── -->
+    <div id="tab-limitations" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 05 / LIMITATIONS</div>
+          <div class="content-title">Weaknesses & Constraints</div>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="grid-2" style="margin-bottom:24px">
+          <div class="card">
+            <div class="card-header"><div class="card-label">Explicit Author Limitations</div></div>
+            <div class="card-body">
+              <ul class="contrib-list" id="explicit-limitations"><li><div class="skeleton skel-line full"></div></li></ul>
+              <div class="limit-tags" id="explicit-tags"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-label">Method Constraints</div></div>
+            <div class="card-body">
+              <ul class="contrib-list" id="method-constraints"><li><div class="skeleton skel-line full"></div></li></ul>
+              <div class="limit-tags" id="method-tags"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-label">Failure Cases</div></div>
+            <div class="card-body"><ul class="contrib-list" id="failure-cases"><li><div class="skeleton skel-line full"></div></li></ul></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-label">Dataset & Cost Limits</div></div>
+            <div class="card-body"><p id="dataset-cost-limits"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOVELTY TAB ── -->
+    <div id="tab-novelty" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 06 / NOVELTY DETECTION</div>
+          <div class="content-title">Is This Paper Actually Novel?</div>
+        </div>
+        <div class="content-actions">
+          <button class="btn btn-red" onclick="loadNovelty(true)">Re-Run Critique</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="novelty-verdict" id="novelty-block">
+          <span class="novelty-stamp" id="novelty-stamp">—</span>
+          <h3>Real Novelty</h3>
+          <p id="real-novelty"><div class="skeleton skel-line full"></div><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-label">Standard Components Reused</div></div>
+            <div class="card-body"><ul class="contrib-list" id="standard-components"><li><div class="skeleton skel-line full"></div></li></ul></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-label">Incremental Improvements</div></div>
+            <div class="card-body"><p id="incremental-improvements"><div class="skeleton skel-line full"></div><div class="skeleton skel-line med"></div></p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CHAT TAB ── -->
+    <div id="tab-chat" class="page-tabs">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">MODULE 07 / PAPER Q&A</div>
+          <div class="content-title">Ask the Paper</div>
+        </div>
+        <div class="content-actions">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--mid)">BM25 + LLaMA-3 · grounded</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+        <div class="chat-shell" style="flex:1;border-left:none;border-right:none;border-bottom:none">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg msg-ai">
+              <div class="chat-msg-label">PAPERLENS AI</div>
+              <div class="chat-msg-bubble">Upload a research paper PDF to begin asking questions. I'll ground every answer in the paper text using BM25 retrieval.</div>
+            </div>
+          </div>
+          <div class="quick-questions">
+            <button class="qq-btn" onclick="sendQuickQ(this)">What is the core idea?</button>
+            <button class="qq-btn" onclick="sendQuickQ(this)">What datasets were used?</button>
+            <button class="qq-btn" onclick="sendQuickQ(this)">What results matter most?</button>
+            <button class="qq-btn" onclick="sendQuickQ(this)">What are the limitations?</button>
+            <button class="qq-btn" onclick="sendQuickQ(this)">Is this paper actually novel?</button>
+            <button class="qq-btn" onclick="sendQuickQ(this)">Explain the methodology simply</button>
+          </div>
+          <div class="chat-input-bar">
+            <input type="text" id="chat-input" placeholder="Ask anything about the paper..." onkeydown="if(event.key==='Enter') sendChat()" disabled>
+            <button onclick="sendChat()" id="chat-send-btn" disabled>Send →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COMPARE VIEW ── -->
+    <div id="view-compare" style="display:none;flex-direction:column;flex:1">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">CROSS-PAPER / COMPARE</div>
+          <div class="content-title">Compare Two Papers</div>
+        </div>
+        <div class="content-actions">
+          <button class="btn btn-primary" onclick="runComparison()">Run Comparison</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div class="grid-2" style="margin-bottom:24px">
+          <div class="card">
+            <div class="card-header"><div class="card-label">Paper 1</div></div>
+            <div class="card-body">
+              <div class="upload-zone" style="padding:16px">
+                <input type="file" accept=".pdf" onchange="handleCompareUpload(event, 1)">
+                <p><strong id="compare-p1-name">No file selected</strong><br>Click to upload PDF</p>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-label">Paper 2</div></div>
+            <div class="card-body">
+              <div class="upload-zone" style="padding:16px">
+                <input type="file" accept=".pdf" onchange="handleCompareUpload(event, 2)">
+                <p><strong id="compare-p2-name">No file selected</strong><br>Click to upload PDF</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="compare-results" style="display:none">
+          <div class="section-sep"><div class="section-sep-label">Comparison Matrix</div><div class="section-sep-line"></div></div>
+          <div style="overflow-x:auto;border:var(--rule-sm);margin-bottom:24px">
+            <table class="data-table" id="compare-table">
+              <thead><tr><th>Paper</th><th>Problem</th><th>Method</th><th>Dataset</th><th>Metric</th><th>Main Result</th><th>Limitation</th></tr></thead>
+              <tbody id="compare-tbody"></tbody>
+            </table>
+          </div>
+          <div class="grid-2">
+            <div class="card"><div class="card-header"><div class="card-label">Novelty Verdict</div></div><div class="card-body"><p id="novelty-verdict-compare"></p></div></div>
+            <div class="card"><div class="card-header"><div class="card-label">Rigor Verdict</div></div><div class="card-body"><p id="rigor-verdict-compare"></p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LIBRARY VIEW ── -->
+    <div id="view-library" style="display:none;flex-direction:column;flex:1">
+      <div class="content-header">
+        <div class="content-header-left">
+          <div class="content-eyebrow">PERSONAL / LIBRARY</div>
+          <div class="content-title">Saved Papers</div>
+        </div>
+        <div class="content-actions">
+          <button class="btn btn-primary" id="save-btn" onclick="saveCurrentPaper()" disabled>Save Current Paper</button>
+        </div>
+      </div>
+      <div class="content-body">
+        <div id="library-list">
+          <div class="empty-state">
+            <div class="empty-icon">📚</div>
+            <div class="empty-title">No saved papers</div>
+            <div class="empty-sub">Analyze a paper and save it to your library.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-rule">
+  <span>PAPERLENS AI · RESEARCH INTELLIGENCE SYSTEM · v1.0</span>
+  <span>FastAPI + Groq LLaMA-3 70B · BM25 Retrieval</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIG — change this to your FastAPI server URL
+// ═══════════════════════════════════════════════════
+const API = "http://localhost:8000";
+
+// ── State ──
+let currentFilePath = null;
+let currentPaperTitle = "Untitled Paper";
+let compareFilePath1 = null;
+let compareFilePath2 = null;
+let loadedTabs = new Set();
+let activeView = 'analysis';
+
+// ═══════════════════════════════════════════════════
+//  API HEALTH CHECK
+// ═══════════════════════════════════════════════════
+async function checkApiStatus() {
+  try {
+    const res = await fetch(`${API}/upload`, { method: 'GET', signal: AbortSignal.timeout(3000) });
+    document.getElementById('api-status-dot').classList.remove('offline');
+    document.getElementById('api-status-text').textContent = 'API ONLINE';
+  } catch {
+    document.getElementById('api-status-dot').classList.add('offline');
+    document.getElementById('api-status-text').textContent = 'API OFFLINE';
+  }
+}
+checkApiStatus();
+setInterval(checkApiStatus, 30000);
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+function showToast(msg, duration = 4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ═══════════════════════════════════════════════════
+//  LOADING OVERLAY
+// ═══════════════════════════════════════════════════
+function showLoading(msg = 'Analyzing...') {
+  document.getElementById('loading-text').textContent = msg;
+  document.getElementById('loading-overlay').classList.add('active');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════
+//  FILE UPLOAD
+// ═══════════════════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('sidebar-upload').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.pdf')) uploadFile(file);
+  else showToast('⚠ Only PDF files are accepted.');
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) uploadFile(file);
+}
+
+async function uploadFile(file) {
+  // Add to sidebar immediately (pending)
+  addPaperToSidebar(file.name.replace('.pdf',''), 'processing', null);
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    showLoading('Uploading PDF...');
+    const res = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    currentFilePath = data.file_path;
+    currentPaperTitle = file.name.replace('.pdf','');
+    loadedTabs.clear();
+
+    // Update sidebar item
+    updateLastPaperBadge('analyzed');
+
+    // Enable chat and save
+    document.getElementById('chat-input').disabled = false;
+    document.getElementById('chat-send-btn').disabled = false;
+    document.getElementById('save-btn').disabled = false;
+
+    // Switch to analysis view and overview tab
+    hideLoading();
+    showView('analysis');
+    await switchTab('overview');
+
+    // Update chat welcome
+    document.getElementById('chat-messages').innerHTML = `
+      <div class="chat-msg msg-ai">
+        <div class="chat-msg-label">PAPERLENS AI</div>
+        <div class="chat-msg-bubble">
+          Paper loaded: <strong>${currentPaperTitle}</strong><br>
+          I've chunked it into retrievable segments. Ask me anything — every answer will be grounded in the paper text.
+        </div>
+      </div>`;
+
+  } catch(err) {
+    hideLoading();
+    updateLastPaperBadge('error');
+    showToast('Upload failed: ' + (err.message || 'Unknown error'));
+  }
+}
+
+function addPaperToSidebar(title, status, filePath) {
+  const list = document.getElementById('paper-list');
+  // Clear placeholder
+  if (list.querySelector('.empty-sub')) list.innerHTML = '';
+
+  document.querySelectorAll('.paper-item').forEach(p => p.classList.remove('active'));
+
+  const badgeClass = status === 'analyzed' ? 'badge-analyzed' : status === 'processing' ? 'badge-processing' : 'badge-queued';
+  const badgeText  = status === 'analyzed' ? 'Analyzed' : status === 'processing' ? 'Processing' : 'Error';
+
+  const item = document.createElement('div');
+  item.className = 'paper-item active';
+  item.dataset.filepath = filePath || '';
+  item.innerHTML = `
+    <div class="paper-title">${title}</div>
+    <div class="paper-meta">Just uploaded</div>
+    <span class="paper-badge ${badgeClass}">${badgeText}</span>
+  `;
+  item.onclick = () => activatePaper(item);
+  list.prepend(item);
+}
+
+function updateLastPaperBadge(status) {
+  const first = document.querySelector('.paper-item');
+  if (!first) return;
+  const badge = first.querySelector('.paper-badge');
+  if (status === 'analyzed') {
+    badge.className = 'paper-badge badge-analyzed';
+    badge.textContent = 'Analyzed';
+    first.querySelector('.paper-meta').textContent = 'Uploaded · Analyzed';
+    first.dataset.filepath = currentFilePath;
+  } else {
+    badge.className = 'paper-badge badge-queued';
+    badge.textContent = 'Error';
+  }
+}
+
+function activatePaper(el) {
+  document.querySelectorAll('.paper-item').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  if (el.dataset.filepath) {
+    currentFilePath = el.dataset.filepath;
+    loadedTabs.clear();
+    switchTab('overview');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  VIEW SWITCHING (Analysis / Compare / Library)
+// ═══════════════════════════════════════════════════
+function showView(viewName, linkEl) {
+  activeView = viewName;
+
+  // Topbar highlight
+  document.querySelectorAll('.topbar-nav a').forEach(a => a.classList.remove('active'));
+  if (linkEl) linkEl.classList.add('active');
+
+  // Show/hide views
+  const analysisTabsEl = ['tab-nopaper','tab-overview','tab-contributions','tab-methodology','tab-results','tab-limitations','tab-novelty','tab-chat'];
+  const isAnalysis = viewName === 'analysis';
+
+  analysisTabsEl.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  document.getElementById('view-compare').style.display = 'none';
+  document.getElementById('view-library').style.display = 'none';
+
+  if (isAnalysis) {
+    // Restore whichever tab was active
+    const activeTab = document.querySelector('.page-tabs.active');
+    if (activeTab) activeTab.style.display = 'flex';
+    else {
+      const noP = document.getElementById('tab-nopaper');
+      noP.style.display = 'flex';
+      noP.classList.add('active');
+    }
+  } else if (viewName === 'compare') {
+    const el = document.getElementById('view-compare');
+    el.style.display = 'flex';
+  } else if (viewName === 'library') {
+    const el = document.getElementById('view-library');
+    el.style.display = 'flex';
+    loadLibrary();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════
+async function switchTab(name) {
+  // Hide all page tabs
+  document.querySelectorAll('.page-tabs').forEach(el => {
+    el.classList.remove('active');
+    el.style.display = 'none';
+  });
+
+  const target = document.getElementById('tab-' + name) || document.getElementById('tab-nopaper');
+  target.classList.add('active');
+  target.style.display = 'flex';
+
+  // Sidebar highlight
+  document.querySelectorAll('.analysis-list li').forEach(li => li.classList.remove('active'));
+  const tabs = ['overview','contributions','methodology','results','limitations','novelty','chat'];
+  const idx = tabs.indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.analysis-list li')[idx].classList.add('active');
+
+  if (!currentFilePath) return;
+  if (loadedTabs.has(name)) return; // already loaded
+
+  // Load data for this tab
+  const loaders = {
+    overview:      loadOverview,
+    contributions: loadContributions,
+    methodology:   loadMethodology,
+    results:       loadResults,
+    limitations:   loadLimitations,
+    novelty:       loadNovelty,
+  };
+  if (loaders[name]) await loaders[name]();
+}
+
+// ═══════════════════════════════════════════════════
+//  PROGRESS HELPERS
+// ═══════════════════════════════════════════════════
+function setProgress(pct, stepId) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  if (stepId) {
+    document.getElementById(stepId).classList.add('running');
+  }
+}
+function doneStep(stepId) {
+  const el = document.getElementById(stepId);
+  if (el) { el.classList.remove('running'); el.classList.add('done'); }
+}
+function resetProgress() {
+  document.querySelectorAll('.ps-item').forEach(s => s.classList.remove('done','running'));
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-pct').textContent = '0%';
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 01 — OVERVIEW
+// ═══════════════════════════════════════════════════
+async function loadOverview() {
+  if (!currentFilePath) return;
+  resetProgress();
+  document.getElementById('overview-title').textContent = currentPaperTitle;
+
+  try {
+    setProgress(20, 'ps-parse');
+    doneStep('ps-parse');
+    setProgress(40, 'ps-chunk');
+    doneStep('ps-chunk');
+
+    setProgress(60, 'ps-extract');
+    const summary = await apiPost(`/papers/summarize?file_path=${enc(currentFilePath)}`);
+    doneStep('ps-extract');
+
+    setProgress(80, 'ps-summarize');
+    fillKey('problem_solved',    summary.simple_english?.problem_solved    || '—');
+    fillKey('why_it_matters',    summary.simple_english?.why_it_matters    || '—');
+    fillKey('what_they_built',   summary.simple_english?.what_they_built   || '—');
+    fillKey('how_it_works',      summary.detailed_technical?.how_it_works  || '—');
+    fillKey('proposed_system',   summary.detailed_technical?.proposed_system|| '—');
+    fillKey('experiments_run',   summary.detailed_technical?.experiments_run|| '—');
+    fillKey('results_obtained',  summary.detailed_technical?.results_obtained|| '—');
+    doneStep('ps-summarize');
+    doneStep('ps-verify');
+    setProgress(100);
+
+    // Quick stats
+    document.getElementById('stat-year').textContent = '—';
+    document.getElementById('chunk-count').textContent = '✓ LOADED';
+    loadedTabs.add('overview');
+
+  } catch(err) {
+    resetProgress();
+    showToast('Overview failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 02 — CONTRIBUTIONS + PROBLEM STATEMENT
+// ═══════════════════════════════════════════════════
+async function loadContributions() {
+  if (!currentFilePath) return;
+  try {
+    showLoading('Extracting contributions...');
+
+    const [contribs, problem] = await Promise.all([
+      apiPost(`/papers/contributions?file_path=${enc(currentFilePath)}`),
+      apiPost(`/papers/analyze-deep Dive?file_path=${enc(currentFilePath)}`).catch(() =>
+        apiPost(`/papers/contributions?file_path=${enc(currentFilePath)}`))
+    ]);
+
+    // Contributions list
+    const list = document.getElementById('contrib-list');
+    list.innerHTML = (contribs.contributions || []).map((c, i) =>
+      `<li><span class="contrib-num">${String(i+1).padStart(2,'0')}.</span>${c}</li>`
+    ).join('') || '<li>No contributions extracted.</li>';
+    document.getElementById('contrib-stamp').textContent = `llama3-70b · ${(contribs.contributions||[]).length} items found`;
+
+    // Problem statement (from deep dive if available)
+    const ps = problem.problem_statement || problem;
+    fillKey('research_gap',            ps.research_gap             || '—');
+    fillKey('previous_method_failures', ps.previous_method_failures || '—');
+    fillKey('exact_target_problem',    ps.exact_target_problem     || '—');
+
+    hideLoading();
+    loadedTabs.add('contributions');
+  } catch(err) {
+    hideLoading();
+    showToast('Contributions failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 03 — METHODOLOGY
+// ═══════════════════════════════════════════════════
+async function loadMethodology() {
+  if (!currentFilePath) return;
+  try {
+    showLoading('Breaking down methodology...');
+    // Use the deep dive endpoint which returns methodology
+    const data = await apiPost(`/papers/analyze-deep Dive?file_path=${enc(currentFilePath)}`);
+    const m = data.methodology || {};
+
+    fillKey('main_pipeline',        m.main_pipeline        || '—');
+    fillKey('architecture_details', m.architecture_details || 'Not specified.');
+    fillKey('simplified_algorithms',m.simplified_algorithms|| '—');
+
+    // Workflow steps
+    const steps = m.step_by_step_workflow || [];
+    const wb = document.getElementById('workflow-steps');
+    wb.innerHTML = steps.length
+      ? steps.map((s,i) => `<div class="summary-row"><div class="summary-key">Step ${i+1}</div><div class="summary-val">${s}</div></div>`).join('')
+      : `<div class="summary-row"><div class="summary-key">—</div><div class="summary-val">No workflow extracted.</div></div>`;
+
+    // Module inventory
+    const mods = m.components_modules || [];
+    const inv = document.getElementById('module-inventory');
+    inv.innerHTML = mods.length
+      ? mods.map(mod => `<div class="card"><div class="card-header"><div class="card-label">${mod.split(':')[0] || mod}</div></div><div class="card-body"><p>${mod}</p></div></div>`).join('')
+      : `<div class="card"><div class="card-header"><div class="card-label">No modules extracted</div></div><div class="card-body"><p>—</p></div></div>`;
+
+    hideLoading();
+    loadedTabs.add('methodology');
+  } catch(err) {
+    hideLoading();
+    showToast('Methodology failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 04 — RESULTS & BASELINES
+// ═══════════════════════════════════════════════════
+async function loadResults() {
+  if (!currentFilePath) return;
+  try {
+    showLoading('Extracting baseline comparisons...');
+    const [baselines, deepDive] = await Promise.all([
+      apiPost(`/papers/extract-baselines?file_path=${enc(currentFilePath)}`),
+      apiPost(`/papers/analyze-deep Dive?file_path=${enc(currentFilePath)}`).catch(() => ({}))
+    ]);
+
+    // Baseline table
+    const tbody = document.getElementById('baseline-tbody');
+    const benchmarks = baselines.benchmarks || [];
+    tbody.innerHTML = benchmarks.length
+      ? benchmarks.map(r => `<tr>
+          <td>${r.baseline_model}</td>
+          <td>${r.metric_name}</td>
+          <td>${r.baseline_score}</td>
+          <td>${r.proposed_score}</td>
+          <td class="${String(r.improvement).startsWith('+') ? 'improvement-pos' : 'improvement-neg'}">${r.improvement}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="5" style="text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--mid)">No baselines found in paper</td></tr>`;
+
+    document.getElementById('significance-summary').textContent = baselines.significance_summary || '—';
+
+    // Results from deep dive
+    const r = (deepDive.results) || {};
+    const datasets = r.datasets_used || [];
+    document.getElementById('datasets-list').innerHTML = datasets.length
+      ? datasets.map(d => `<li><span class="contrib-num">→</span>${d}</li>`).join('')
+      : '<li>No datasets listed.</li>';
+
+    const perf = r.key_performance_numbers || [];
+    document.getElementById('perf-numbers').innerHTML = perf.length
+      ? perf.map(p => `<li><span class="contrib-num">→</span>${p}</li>`).join('')
+      : '<li>No performance numbers extracted.</li>';
+
+    hideLoading();
+    loadedTabs.add('results');
+  } catch(err) {
+    hideLoading();
+    showToast('Results failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 05 — LIMITATIONS
+// ═══════════════════════════════════════════════════
+async function loadLimitations() {
+  if (!currentFilePath) return;
+  try {
+    showLoading('Extracting limitations...');
+    const data = await apiPost(`/papers/analyze-deep Dive?file_path=${enc(currentFilePath)}`);
+    const lim = data.limitations || {};
+
+    renderList('explicit-limitations', lim.explicit_limitations, '!');
+    renderList('method-constraints',   lim.method_constraints,   '!');
+    renderList('failure-cases',        lim.failure_cases,        '!');
+
+    // Tags from explicit limitations
+    const tags = lim.explicit_limitations || [];
+    document.getElementById('explicit-tags').innerHTML = tags.slice(0,4).map(t =>
+      `<span class="limit-tag hard">${t.split(' ').slice(0,4).join(' ')}</span>`).join('');
+    document.getElementById('method-tags').innerHTML = (lim.method_constraints || []).slice(0,4).map(t =>
+      `<span class="limit-tag">${t.split(' ').slice(0,4).join(' ')}</span>`).join('');
+
+    const dcl = document.getElementById('dataset-cost-limits');
+    dcl.textContent = lim.dataset_and_cost_limitations || 'Not explicitly mentioned.';
+
+    hideLoading();
+    loadedTabs.add('limitations');
+  } catch(err) {
+    hideLoading();
+    showToast('Limitations failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 06 — NOVELTY
+// ═══════════════════════════════════════════════════
+async function loadNovelty(force = false) {
+  if (!currentFilePath) return;
+  if (loadedTabs.has('novelty') && !force) return;
+  try {
+    showLoading('Running novelty critique...');
+    const data = await apiPost(`/papers/analyze-novelty?file_path=${enc(currentFilePath)}`);
+
+    document.getElementById('real-novelty').textContent = data.real_novelty || '—';
+    document.getElementById('incremental-improvements').textContent = data.incremental_improvements || '—';
+    document.getElementById('novelty-stamp').textContent = data.real_novelty?.length > 100 ? 'Substantive' : 'Incremental';
+
+    renderList('standard-components', data.standard_components_reused, '→');
+
+    hideLoading();
+    loadedTabs.add('novelty');
+  } catch(err) {
+    hideLoading();
+    showToast('Novelty analysis failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  MODULE 07 — CHAT
+// ═══════════════════════════════════════════════════
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const question = input.value.trim();
+  if (!question) return;
+  if (!currentFilePath) { showToast('Upload a paper first.'); return; }
+
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('chat-send-btn').disabled = true;
+
+  addChatMsg('user', question);
+  const typingId = addTypingIndicator();
+
+  try {
+    const res = await fetch(`${API}/papers/chat?file_path=${enc(currentFilePath)}&question=${enc(question)}`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    removeTypingIndicator(typingId);
+    addChatMsg('ai', data.answer, data.citations || []);
+  } catch(err) {
+    removeTypingIndicator(typingId);
+    addChatMsg('ai', 'Error: ' + err.message, []);
+  } finally {
+    input.disabled = false;
+    document.getElementById('chat-send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function sendQuickQ(btn) {
+  if (!currentFilePath) { showToast('Upload a paper first.'); return; }
+  document.getElementById('chat-input').value = btn.textContent;
+  sendChat();
+}
+
+function addChatMsg(role, text, citations = []) {
+  const container = document.getElementById('chat-messages');
+  const citHTML = citations.map(c =>
+    `<div class="chat-citation">📍 Page ${c.page_number} · ${c.section_name} — "${c.excerpt}"</div>`
+  ).join('');
+  const div = document.createElement('div');
+  div.className = `chat-msg msg-${role}`;
+  div.innerHTML = `
+    <div class="chat-msg-label">${role === 'user' ? 'YOU' : 'PAPERLENS AI'}</div>
+    <div class="chat-msg-bubble">${text}</div>
+    ${citHTML}
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const container = document.getElementById('chat-messages');
+  const id = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'chat-msg msg-ai';
+  div.id = id;
+  div.innerHTML = `
+    <div class="chat-msg-label">PAPERLENS AI</div>
+    <div class="chat-msg-bubble" style="padding:14px 16px">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeTypingIndicator(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ═══════════════════════════════════════════════════
+//  COMPARE
+// ═══════════════════════════════════════════════════
+async function handleCompareUpload(e, num) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  showLoading(`Uploading Paper ${num}...`);
+  try {
+    const res = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (num === 1) { compareFilePath1 = data.file_path; document.getElementById('compare-p1-name').textContent = file.name; }
+    else           { compareFilePath2 = data.file_path; document.getElementById('compare-p2-name').textContent = file.name; }
+    hideLoading();
+  } catch(err) {
+    hideLoading();
+    showToast('Upload failed: ' + err.message);
+  }
+}
+
+async function runComparison() {
+  if (!compareFilePath1 || !compareFilePath2) { showToast('Upload both papers first.'); return; }
+  showLoading('Running cross-paper comparison...');
+  try {
+    const data = await fetch(`${API}/papers/compare?file_path_1=${enc(compareFilePath1)}&file_path_2=${enc(compareFilePath2)}`, {method:'POST'}).then(r=>r.json());
+
+    const tbody = document.getElementById('compare-tbody');
+    tbody.innerHTML = (data.matrix_table || []).map(r => `<tr>
+      <td><strong>${r.title}</strong></td>
+      <td>${r.problem}</td><td>${r.method}</td><td>${r.dataset}</td>
+      <td>${r.metric}</td><td>${r.main_result}</td><td>${r.limitation}</td>
+    </tr>`).join('');
+
+    document.getElementById('novelty-verdict-compare').textContent = data.novelty_verdict || '—';
+    document.getElementById('rigor-verdict-compare').textContent   = data.rigor_verdict   || '—';
+    document.getElementById('compare-results').style.display = 'block';
+    hideLoading();
+  } catch(err) {
+    hideLoading();
+    showToast('Comparison failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  LIBRARY
+// ═══════════════════════════════════════════════════
+async function saveCurrentPaper() {
+  if (!currentFilePath) { showToast('No paper loaded.'); return; }
+  try {
+    const res = await fetch(`${API}/library/save?title=${enc(currentPaperTitle)}&file_path=${enc(currentFilePath)}`, {method:'POST'});
+    if (!res.ok) throw new Error(await res.text());
+    showToast('✓ Paper saved to library.');
+    loadLibrary();
+  } catch(err) { showToast('Save failed: ' + err.message); }
+}
+
+async function loadLibrary() {
+  try {
+    const data = await fetch(`${API}/library/`).then(r => r.json());
+    const el = document.getElementById('library-list');
+    if (!data.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">No saved papers</div><div class="empty-sub">Analyze a paper and save it to your library.</div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="summary-block">${data.map(p => `
+      <div class="summary-row">
+        <div class="summary-key">${new Date(p.uploaded_at).toLocaleDateString()}</div>
+        <div class="summary-val" style="display:flex;align-items:center;justify-content:space-between">
+          <span><strong>${p.title}</strong><br><span style="font-family:var(--mono);font-size:10px;color:var(--mid)">${p.file_path}</span></span>
+          <button class="btn btn-ghost" style="font-size:10px;padding:6px 10px" onclick="loadFromLibrary('${p.file_path}','${p.title}')">Load →</button>
+        </div>
+      </div>`).join('')}</div>`;
+  } catch(err) { showToast('Library load failed: ' + err.message); }
+}
+
+function loadFromLibrary(filePath, title) {
+  currentFilePath = filePath;
+  currentPaperTitle = title;
+  loadedTabs.clear();
+  showView('analysis');
+  switchTab('overview');
+}
+
+// ═══════════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════════
+async function exportMarkdown() {
+  if (!currentFilePath) { showToast('No paper loaded.'); return; }
+  try {
+    const url = `${API}/papers/export/markdown?title=${enc(currentPaperTitle)}&problem=see+summary&method=see+methodology`;
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = currentPaperTitle.replace(/\s+/g,'_') + '_summary.md';
+    a.click();
+  } catch(err) { showToast('Export failed: ' + err.message); }
+}
+
+async function reAnalyze() {
+  loadedTabs.clear();
+  await switchTab('overview');
+}
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+function enc(s) { return encodeURIComponent(s); }
+
+async function apiPost(path) {
+  const res = await fetch(`${API}${path}`, { method: 'POST' });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(errText || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+function fillKey(key, value) {
+  const el = document.querySelector(`[data-key="${key}"]`);
+  if (el) el.textContent = value;
+}
+
+function renderList(elId, arr, symbol) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = (arr && arr.length)
+    ? arr.map(item => `<li><span class="contrib-num">${symbol}</span>${item}</li>`).join('')
+    : `<li>None identified.</li>`;
+}
+
+// Stat update from chunks
+function updateStats(chunks) {
+  if (!chunks) return;
+  const n = chunks.length;
+  document.getElementById('stat-chunks').textContent = n;
+  document.getElementById('chunk-count').textContent = n + ' CHUNKS';
+  const pages = chunks.reduce((m,c) => Math.max(m, c.page_number || 0), 0);
+  document.getElementById('stat-pages').textContent = pages || '—';
+  const secs = new Set(chunks.map(c => c.section_name)).size;
+  document.getElementById('stat-sections').textContent = secs || '—';
+}
+
+function copyContributions() {
+  const items = document.querySelectorAll('#contrib-list li');
+  const text = Array.from(items).map(li => li.textContent.trim()).join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast('✓ Contributions copied to clipboard.'));
+}
+</script>
+</body>
+</html>

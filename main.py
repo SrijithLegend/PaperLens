@@ -1,13 +1,15 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import Depends, FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 import shutil
 from pathlib import Path
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 import fitz
 from sqlalchemy import create_engine, Column, String, Integer, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 import datetime
 from groq import Groq
 import json
@@ -42,6 +44,12 @@ def get_db():
     finally:
         db.close()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # tighten this in production
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DATABASE_URL = "sqlite:///./paperlens.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
