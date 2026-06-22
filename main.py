@@ -26,23 +26,19 @@ from extraction import extract_problem_statement, extract_methodology, extract_r
 from question import get_chat_response
 from analysis import detect_paper_novelty, extract_baseline_comparisons, BaselineComparison, NoveltyAssessment
 from multipaper import evaluate_and_compare_papers, generate_markdown_export, CrossPaperEvaluation
+from fastapi.staticfiles import StaticFiles
+
 
 
 load_dotenv()
 app = FastAPI()
 groq_client = Groq()
 
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 UPLOAD_DIR = Path("uploaded_papers")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,6 +51,13 @@ DATABASE_URL = "sqlite:///./paperlens.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # 38. Database Model for Personal Library
 class SavedPaper(Base):
@@ -71,6 +74,7 @@ async def read_root():
     return {"message": "Welcome to the PaperLens API"}
 
 
+# main.py — replace the upload endpoint
 @app.post("/upload")
 async def upload_research_paper(file: UploadFile = File(...)):
     if not file.filename.endswith('.pdf'):
@@ -79,18 +83,13 @@ async def upload_research_paper(file: UploadFile = File(...)):
     file_path = UPLOAD_DIR / file.filename
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
-    try:
-        processed_chunks = process_pdf_into_chunks(str(file_path))
-        
-        return {
-            "message": f"Successfully chunked into {len(processed_chunks)} parts.",
-            "sample_chunks": processed_chunks[:3] 
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
-
-
+    
+    # Return the path so the frontend can reference it in subsequent calls
+    return {
+        "file_path": str(file_path),
+        "filename": file.filename,
+        "message": "Upload successful"
+    }
 
 
 
@@ -123,7 +122,7 @@ async def get_contributions(file_path: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.post("/papers/analyze-deep Dive")
+@app.post("/papers/analyze-deep-dive")  
 async def deep_dive_analysis(file_path: str):
     try:
         # 1. Process document into structured chunks
